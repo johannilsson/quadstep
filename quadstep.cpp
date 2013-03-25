@@ -6,6 +6,9 @@
 
 */
 
+#include <Wire.h>
+#include "Adafruit_MCP23017.h"
+
 #if ARDUINO >= 100
  #include "Arduino.h"
 #else
@@ -17,37 +20,43 @@
 #define STEPMIN	800
 
 quadstep::quadstep()
-{	
+{
+	_using_mcp = false;
 	//make sure the step lines are low on startup
-	digitalWrite(_step_pin, LOW);
+	doDigitalWrite(_step_pin, LOW);
 	Serial.begin(9600);
+}
+
+void quadstep::set_mcp(Adafruit_MCP23017 mcp) {
+	_using_mcp = true;
+	_mcp = mcp;
 }
 
 /////////////////////////////////////////////////////////
 ///////   Pin connections ///////////////////////////////
 /////////////////////////////////////////////////////////
 void quadstep::set_enable_pin(int enable_pin) {
-	pinMode(enable_pin, OUTPUT);
-	digitalWrite(enable_pin, HIGH);
+	doPinMode(enable_pin, OUTPUT);
+	doDigitalWrite(enable_pin, HIGH);
 	_enable_pin = enable_pin;
 }
 
 void quadstep::set_direction_pin(int direction_pin) {
-	pinMode(direction_pin, OUTPUT);
-	digitalWrite(direction_pin, LOW);
+	doPinMode(direction_pin, OUTPUT);
+	doDigitalWrite(direction_pin, LOW);
 	_direction_pin = direction_pin;
 }
 
 void quadstep::set_step_pin(int step_pin) {
-	pinMode(step_pin, OUTPUT);
+	doPinMode(step_pin, OUTPUT);
 	_step_pin = step_pin;
 }
 
 void quadstep::set_microstep_select_pins(int ms1_pin,int ms2_pin,int ms3_pin)
 {
-	pinMode(ms1_pin, OUTPUT);
-	pinMode(ms2_pin, OUTPUT);
-	pinMode(ms3_pin, OUTPUT);
+	doPinMode(ms1_pin, OUTPUT);
+	doPinMode(ms2_pin, OUTPUT);
+	doPinMode(ms3_pin, OUTPUT);
 	_ms1_pin = ms1_pin;
 	_ms2_pin = ms2_pin;
 	_ms3_pin = ms3_pin;
@@ -76,7 +85,7 @@ void quadstep::stall()
 
 void quadstep::set_direction(int number_of_steps) {
 	bool dir = (number_of_steps > 0) ? HIGH : LOW;
-	digitalWrite(_direction_pin, dir);
+	doDigitalWrite(_direction_pin, dir);
 }
 
 void quadstep::set_speed(step_modes_t step_size, int torque)
@@ -86,41 +95,57 @@ void quadstep::set_speed(step_modes_t step_size, int torque)
 
 void quadstep::set_microstep_format(step_modes_t step_size) {
 	if (step_size == FULL) {
-		digitalWrite(_ms1_pin, LOW);
-		digitalWrite(_ms2_pin, LOW);
-		digitalWrite(_ms3_pin, LOW);
+		doDigitalWrite(_ms1_pin, LOW);
+		doDigitalWrite(_ms2_pin, LOW);
+		doDigitalWrite(_ms3_pin, LOW);
 	} else if (step_size == HALF) {
-		digitalWrite(_ms1_pin, HIGH);
-		digitalWrite(_ms2_pin, LOW);
-		digitalWrite(_ms3_pin, LOW);
+		doDigitalWrite(_ms1_pin, HIGH);
+		doDigitalWrite(_ms2_pin, LOW);
+		doDigitalWrite(_ms3_pin, LOW);
 	} else if (step_size == QUARTER) {
-		digitalWrite(_ms1_pin, LOW);
-		digitalWrite(_ms2_pin, HIGH);
-		digitalWrite(_ms3_pin, LOW);
+		doDigitalWrite(_ms1_pin, LOW);
+		doDigitalWrite(_ms2_pin, HIGH);
+		doDigitalWrite(_ms3_pin, LOW);
 	} else if (step_size == EIGHTH) {
-		digitalWrite(_ms1_pin, HIGH);
-		digitalWrite(_ms2_pin, HIGH);
-		digitalWrite(_ms3_pin, LOW);
+		doDigitalWrite(_ms1_pin, HIGH);
+		doDigitalWrite(_ms2_pin, HIGH);
+		doDigitalWrite(_ms3_pin, LOW);
 	} else if (step_size == SIXTEENTH) {
-		digitalWrite(_ms1_pin, HIGH);
-		digitalWrite(_ms2_pin, HIGH);
-		digitalWrite(_ms3_pin, HIGH);
+		doDigitalWrite(_ms1_pin, HIGH);
+		doDigitalWrite(_ms2_pin, HIGH);
+		doDigitalWrite(_ms3_pin, HIGH);
 	} else{
 		Serial.println("error: incorrect value for step_size");
 	}
 }
 
 void quadstep::enable() {
-	digitalWrite(_enable_pin, LOW);
+	doDigitalWrite(_enable_pin, LOW);
 }
 
 void quadstep::step() {
-	digitalWrite(_step_pin, HIGH);
+	doDigitalWrite(_step_pin, HIGH);
 	delayMicroseconds (pulse_width); //low time
-	digitalWrite(_step_pin, LOW);
+	doDigitalWrite(_step_pin, LOW);
 	delayMicroseconds(pulse_width); // high time
 }
 
 void quadstep::disable() {
-	digitalWrite(_enable_pin, HIGH);
+	doDigitalWrite(_enable_pin, HIGH);
+}
+
+void quadstep::doDigitalWrite(int pin, int value) {
+	if (!_using_mcp) {
+		digitalWrite(pin, value);
+	} else {
+		_mcp.digitalWrite(pin, value);
+	}
+}
+
+void quadstep::doPinMode(int pin, int value) {
+	if (!_using_mcp) {
+		pinMode(pin, value);
+	} else {
+		_mcp.pinMode(pin, value);
+	}
 }

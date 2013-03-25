@@ -15,6 +15,9 @@
  #include "WProgram.h"
 #endif
 
+#include <Wire.h>
+#include "Adafruit_MCP23017.h"
+
 /*
  * Microstep Resolution		Excitation Mode
  * Full Step 				2 Phase
@@ -34,23 +37,26 @@ enum step_modes_t {
 
 class quadstep
 {
-  public:
+	public:
 	quadstep();
-    void go(step_modes_t step_size, int number_of_steps, int torque);
+	void go(step_modes_t step_size, int number_of_steps, int torque);
 	void stall();
 	void set_enable_pin(int enable_pin);
 	void set_direction_pin(int direction_pin);
 	void set_step_pin(int step_pin);
 	void set_microstep_select_pins(int ms1_pin,int ms2_pin,int ms3_pin);
 	//void motor1rpm(int direction,int level);
- 
-  private:
+	void set_mcp(Adafruit_MCP23017 mcp);
+
+	private:
 	void set_direction(int number_of_steps);
 	void set_speed(step_modes_t step_size, int torque);
 	void set_microstep_format(step_modes_t step_size);
 	void enable();
 	void step();
 	void disable();
+	void doDigitalWrite(int pin, int value);
+	void doPinMode(int pin, int value);
 	int pulse_width;
 	int _enable_pin;
 	int _direction_pin;
@@ -58,5 +64,7 @@ class quadstep
 	int _ms1_pin;
 	int _ms2_pin;
 	int _ms3_pin;
+	bool _using_mcp;
+	Adafruit_MCP23017 _mcp;
 };
 #endif
