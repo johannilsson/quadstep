@@ -64,19 +64,56 @@ void quadstep::set_microstep_select_pins(int ms1_pin,int ms2_pin,int ms3_pin) {
 /////////////////////////////////////////////////////////
 ///////   Motor settings  ///////////////////////////////
 /////////////////////////////////////////////////////////
-void quadstep::go(step_modes_t step_size, int number_of_steps, int torque) {
-  set_direction(number_of_steps);
-  set_speed(step_size, torque);
-  set_microstep_format(step_size);
-  enable();
-  for(int i=1;i<=abs(number_of_steps);i++) {
+
+bool quadstep::run() {
+  if (_current_position != _target_position) {
+
     step();
+
+    if (_direction == DIRECTION_CW) {
+      _current_position += 1;
+    } else {
+      _current_position -= 1;
+    }
+
+    return true;
   }
   disable();
+  return false;
+}
+
+int quadstep::getStepsToGo() {
+  return _target_position - _current_position;
+}
+
+int quadstep::getCurrentPosition() {
+  return _current_position;
+}
+
+void quadstep::go(step_modes_t step_size, int number_of_steps, int torque) {
+  if (_target_position != number_of_steps) {
+    _target_position = number_of_steps;
+    _step_size = step_size;
+    _torque = torque;
+    _direction = getDirection(number_of_steps);
+
+  
+    set_direction(_target_position);
+    set_speed(_step_size, _torque);
+    set_microstep_format(_step_size);
+    
+    enable();
+  }
 }
 
 void quadstep::stall() {
   enable();
+}
+
+direction_t quadstep::getDirection(int number_of_steps) {
+  // Or otherway around?
+  direction_t dir = (number_of_steps > 0) ? DIRECTION_CW : DIRECTION_CCW;
+  return dir;
 }
 
 void quadstep::set_direction(int number_of_steps) {

@@ -37,6 +37,11 @@ enum step_modes_t {
   SIXTEENTH = 16
 };
 
+enum direction_t {
+  DIRECTION_CW = 1,
+  DIRECTION_CCW = 2
+};
+
 class quadstep {
   public:
   quadstep();
@@ -48,8 +53,12 @@ class quadstep {
   void set_microstep_select_pins(int ms1_pin,int ms2_pin,int ms3_pin);
   //void motor1rpm(int direction,int level);
   void set_mcp(Adafruit_MCP23017 mcp);
+  int getCurrentPosition();
+  int getStepsToGo();
+  bool run();
 
   private:
+  direction_t getDirection(int number_of_steps);
   void set_direction(int number_of_steps);
   void set_speed(step_modes_t step_size, int torque);
   void set_microstep_format(step_modes_t step_size);
@@ -59,6 +68,12 @@ class quadstep {
   void doDigitalWrite(int pin, int value);
   void doPinMode(int pin, int value);
   int pulse_width;
+  step_modes_t _step_size;
+  int _torque;
+  int _direction;
+  
+  int _current_position;
+  int _target_position;
   int _enable_pin;
   int _direction_pin;
   int _step_pin;
